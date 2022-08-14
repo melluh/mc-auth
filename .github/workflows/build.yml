@@ -1,0 +1,41 @@
+name: Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+      - name: Cache Gradle & SonarQube packages
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.sonar/cache
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Build and analyze
+        run: ./gradlew build sonarqube --stacktrace
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST_URL }}
+      - name: Publish to Maven repo
+        run: ./gradlew publish --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_melluhUsername: ${{ secrets.REPO_USERNAME }}
+          ORG_GRADLE_PROJECT_melluhPassword: ${{ secrets.REPO_PASSWORD }}
+        if: github.ref == 'refs/heads/main'
