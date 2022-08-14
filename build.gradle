@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group 'com.melluh'
+version '1.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.grack:nanojson:1.7'
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'melluh'
+
+            def releasesRepoUrl = 'https://repo.melluh.com/releases'
+            def snapshotsRepoUrl = 'https://repo.melluh.com/snapshots'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+            credentials(PasswordCredentials.class)
+        }
+    }
+
+    publications {
+        maven(MavenPublication) {
+            groupId = 'com.melluh'
+            artifactId = 'mcauth'
+            from components.java
+        }
+    }
+}
