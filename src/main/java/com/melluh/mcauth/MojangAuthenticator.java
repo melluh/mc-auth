@@ -87,7 +87,9 @@ public class MojangAuthenticator {
                    .build();
 
            try {
-               httpClient.send(request, BodyHandlers.discarding());
+               HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
+               if(response.statusCode() / 100 != 2)
+                   throw new AuthenticationException("Session join request to Mojang failed (status code: " + response.statusCode() + ")");
            } catch (IOException | InterruptedException ex) {
                throw new AuthenticationException("Session join request to Mojang failed", ex);
            }
