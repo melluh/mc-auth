@@ -110,6 +110,34 @@ public class MicrosoftAuthenticator {
         PENDING, ACCEPTED, DECLINED, EXPIRED
     }
 
+    public CompletableFuture<MicrosoftToken> refresh(MicrosoftToken microsoftToken) {
+        return CompletableFuture.supplyAsync(() -> {
+            FormBody body = new FormBody()
+                    .add("client_id", clientId)
+                    .add("grant_type", "refresh_token")
+                    .add("scope", scope)
+                    .add("refresh_token", microsoftToken.refreshToken());
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(TOKEN_URI)
+                    .POST(body.asPublisher())
+                    .build();
+
+            try {
+                HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+                JsonObject json = JsonParser.object().from(response.body());
+
+                if(json.has("error")) {
+                    throw getError(json);
+                }
+
+                return tokenFromJson(json);
+            } catch (IOException | InterruptedException | JsonParserException ex) {
+                throw new AuthenticationException("Failed to send refresh request to Microsoft", ex);
+            }
+        });
+    }
+
     private static MicrosoftToken tokenFromJson(JsonObject json) {
         long expiryTime = System.currentTimeMillis() + json.getInt("expires_in") * 1000L;
         return new MicrosoftToken(json.getString("access_token"), expiryTime, json.getString("refresh_token"));
